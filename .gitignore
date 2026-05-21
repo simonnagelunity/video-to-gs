@@ -3,3 +3,4 @@ output/
 *.ply
 *.tar.xz
 .DS_Store
+target/
