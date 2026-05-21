@@ -62,13 +62,27 @@ N_FRAMES=$(ls "$WORK/images" | wc -l | tr -d ' ')
 log "  → $N_FRAMES frames"
 
 # ─── 2. COLMAP SfM (sequential matcher fits video input) ────────────────────
-log "[2/4] colmap feature_extractor"
-colmap feature_extractor \
-    --database_path "$WORK/database.db" \
-    --image_path    "$WORK/images" \
-    --ImageReader.single_camera 1 \
-    --SiftExtraction.max_num_features 16384 \
-    --FeatureExtraction.use_gpu "$USE_GPU_SIFT"
+# Feature extractor: SIFT on CPU is the safe fallback. SIFT-GPU is broken on CUDA 12
+# (colmap's SiftGPU uses deprecated CUDA texture references → "operation not supported").
+# When USE_GPU_SIFT=1 we use ALIKED_N16ROT instead — neural features via ONNX-Runtime CUDA EP.
+if [ "$USE_GPU_SIFT" = "1" ]; then
+    log "[2/4] colmap feature_extractor (ALIKED_N16ROT on GPU)"
+    colmap feature_extractor \
+        --database_path "$WORK/database.db" \
+        --image_path    "$WORK/images" \
+        --ImageReader.single_camera 1 \
+        --FeatureExtraction.type ALIKED_N16ROT \
+        --AlikedExtraction.max_num_features 8192 \
+        --FeatureExtraction.use_gpu 1
+else
+    log "[2/4] colmap feature_extractor (SIFT on CPU)"
+    colmap feature_extractor \
+        --database_path "$WORK/database.db" \
+        --image_path    "$WORK/images" \
+        --ImageReader.single_camera 1 \
+        --SiftExtraction.max_num_features 16384 \
+        --FeatureExtraction.use_gpu 0
+fi
 
 log "[2/4] colmap sequential_matcher (video-ordered, with loop closure)"
 colmap sequential_matcher \

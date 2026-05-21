@@ -4,12 +4,15 @@ FROM colmap/colmap:20260427.6785
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Add ffmpeg (frame extraction) and Vulkan runtime (Brush uses wgpu → Vulkan on Linux).
+# Add ffmpeg (frame extraction), Vulkan runtime (Brush uses wgpu → Vulkan on Linux),
+# and cuDNN 9 (ONNX-Runtime CUDA EP needs it for COLMAP's ALIKED neural feature extractor).
+# The CUDA apt repo is already configured by the colmap/colmap base image.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ffmpeg \
         libvulkan1 \
         mesa-vulkan-drivers \
         vulkan-tools \
+        libcudnn9-cuda-12 \
         ca-certificates \
         curl \
         xz-utils \
